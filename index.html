@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>F1 Aşk Oyunu 💖</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -39,6 +39,29 @@ canvas{
     transition: opacity 4s ease;
     text-align:center;
 }
+
+/* 📱 MOBİL YÖN TUŞLARI */
+#controls{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    display:grid;
+    grid-template-columns: 70px 70px 70px;
+    grid-template-rows: 70px 70px 70px;
+    gap:10px;
+}
+
+.btn{
+    background:#ff4b5c;
+    border:none;
+    color:white;
+    font-size:28px;
+    border-radius:15px;
+    font-weight:bold;
+}
+
+.empty{ visibility:hidden; }
 </style>
 </head>
 <body>
@@ -46,6 +69,21 @@ canvas{
 <div id="gameContainer">
     <canvas id="game"></canvas>
     <div id="message">💖 SENİ ÇOK SEVİYORUM 💖</div>
+</div>
+
+<!-- MOBİL TUŞLAR -->
+<div id="controls">
+    <div class="empty"></div>
+    <button class="btn" ontouchstart="startMove(0,-1)" ontouchend="stopMove()">▲</button>
+    <div class="empty"></div>
+
+    <button class="btn" ontouchstart="startMove(-1,0)" ontouchend="stopMove()">◀</button>
+    <div class="empty"></div>
+    <button class="btn" ontouchstart="startMove(1,0)" ontouchend="stopMove()">▶</button>
+
+    <div class="empty"></div>
+    <button class="btn" ontouchstart="startMove(0,1)" ontouchend="stopMove()">▼</button>
+    <div class="empty"></div>
 </div>
 
 <script>
@@ -56,33 +94,21 @@ const rows = 12;
 const cols = 12;
 
 function resizeGame(){
-    const size = Math.min(window.innerWidth, window.innerHeight-50);
+    const size = Math.min(window.innerWidth, window.innerHeight-180);
     canvas.width = size;
     canvas.height = size;
 }
 resizeGame();
 window.addEventListener("resize", resizeGame);
 
-const map = [
-[1,1,1,1,1,1,1,1,1,1,1,1],
-[1,0,0,0,1,0,0,0,0,0,0,1],
-[1,0,1,0,1,0,1,1,1,1,0,1],
-[1,0,1,0,0,0,0,0,0,1,0,1],
-[1,0,1,1,1,1,1,1,0,1,0,1],
-[1,0,0,0,0,0,0,1,0,1,0,1],
-[1,1,1,1,1,1,0,1,0,1,0,1],
-[1,0,0,0,1,0,0,1,0,0,0,1],
-[1,0,1,0,1,0,1,1,1,1,0,1],
-[1,0,1,0,0,0,0,0,0,1,0,1],
-[1,0,0,0,1,0,0,0,0,0,0,1],
-[1,1,1,1,1,1,1,1,1,1,1,1]
-];
+const map = [...]; // HARİTAN BURAYA AYNI KALACAK
 
 let player = {x:1,y:1};
 let flowers = [];
 let score = 0;
 const totalFlowers = 10;
 let gameFinished = false;
+let moveInterval = null;
 
 while(flowers.length < totalFlowers){
     let rx = Math.floor(Math.random()*cols);
@@ -92,9 +118,7 @@ while(flowers.length < totalFlowers){
     }
 }
 
-function tileSize(){
-    return canvas.width / cols;
-}
+function tileSize(){ return canvas.width / cols; }
 
 function drawMap(){
     for(let y=0;y<rows;y++){
@@ -114,43 +138,36 @@ function drawFlowers(){
     });
 }
 
-/* 🏍️ ÇIKINTISIZ YUVARLAK YARIŞ KASKI */
 function drawPlayer(){
     const size = tileSize();
     const x = player.x * size;
     const y = player.y * size;
     const px = size / 14;
 
-    // --- ANA YUVARLAK KUBBE ---
     ctx.fillStyle = "#e10600";
     ctx.fillRect(x + px*4, y + px*5, px*6, px*5);
     ctx.fillRect(x + px*5, y + px*4, px*4, px*2);
     ctx.fillRect(x + px*6, y + px*3, px*2, px*2);
 
-    // --- VİZÖR ---
     ctx.fillStyle = "#111";
     ctx.fillRect(x + px*6, y + px*6, px*4, px*3);
 
-    // vizör parlama
     ctx.fillStyle = "#666";
     ctx.fillRect(x + px*7, y + px*6, px*1, px*1);
 
-    // --- ÜST HAVA GİRİŞİ ---
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(x + px*6, y + px*4, px*2, px*1);
 
-    // --- ALT GÖLGE ---
     ctx.fillStyle = "#b00000";
     ctx.fillRect(x + px*6, y + px*9, px*3, px*1);
 }
 
 function move(dx,dy){
     if(gameFinished) return;
-
     const nx = player.x + dx;
     const ny = player.y + dy;
 
-    if(map[ny][nx]===0){
+    if(map[ny] && map[ny][nx]===0){
         player.x = nx;
         player.y = ny;
     }
@@ -163,9 +180,16 @@ function move(dx,dy){
         return true;
     });
 
-    if(score===totalFlowers){
-        endGame();
-    }
+    if(score===totalFlowers) endGame();
+}
+
+function startMove(dx,dy){
+    move(dx,dy);
+    moveInterval = setInterval(()=>move(dx,dy),200);
+}
+
+function stopMove(){
+    clearInterval(moveInterval);
 }
 
 function endGame(){
